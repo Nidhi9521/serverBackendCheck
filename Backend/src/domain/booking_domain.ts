@@ -318,10 +318,15 @@ class BookingDomain {
             var roomPriceWithGst = (roomPrizwWithDays * (gstPercentage / 100));
             if (query.coupon_id != 0) {
                 var resCoupon = await couponmodel.find({ "_id": query.coupon_id })
+                if(resCoupon){
                 discountPercentage = Number(resCoupon[0]?.discount);
                 var discountPrice:number = (roomPrizwWithDays + roomPriceWithGst) * (discountPercentage / 100)
                 if(discountPrice>resCoupon[0].minValue){
                     discountPrice=resCoupon[0].minValue;
+                }
+                }else{
+                    discountPercentage = 0;
+                    discountPrice = 0;
                 }
             } else {
                 discountPercentage = 0;
@@ -355,7 +360,7 @@ class BookingDomain {
     }
 
     async bookingFreeze(req: Request, res: Response, cIn: string, cOut: string, roomId: any, hotelId: any,price:any,orderId:any,coupon_id:any) {
-        var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
+      var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
         try {
             if (roomId.length != 0) {
                 var cin=new Date(cIn);
@@ -365,7 +370,8 @@ class BookingDomain {
                 var diffDays = Math.ceil(diff / (1000 * 3600 * 24));
                 var bookIngData: object = {
                     _id: nextID?._id == undefined ? 1 : Number(nextID?.id) + 1,
-                    user_id: reqData.uid,
+                    // user_id: 'W456HNYRX8a4redJXU9JYxYZm0r1',
+                    user_id:reqData.uid,
                     hotel_id: hotelId,
                     no_of_room: roomId.length,
                     room_id: roomId,

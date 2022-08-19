@@ -29,6 +29,7 @@ class PaymentDomain {
         try {
             var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
             var uid: string = reqData.uid;
+            // var uid = "W456HNYRX8a4redJXU9JYxYZm0r1";
             var userData = await Usermodel.find({ _id: uid }).select("-__v");
             const response = await instance.orders.create(options);
             var orderData = {
