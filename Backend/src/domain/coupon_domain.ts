@@ -2,7 +2,7 @@ import { citymodel } from "../model/city";
 import { StatusCode } from "../statuscode";
 import { hotelmodel } from "../model/hotel";
 import { couponmodel } from "../model/coupon";
-import express, { Express, Request, Response } from 'express'
+import express, { Express, query, Request, Response } from 'express'
 import { bookingmodel } from "../model/booking";
 
 class CouponDomain {
@@ -64,8 +64,34 @@ class CouponDomain {
                     res.status(StatusCode.Sucess).send(couponData);
                     res.end();
                 } else {
-                    res.status(StatusCode.Sucess).send([]);
-                    res.end();
+
+                    var couponData = await couponmodel.find({
+                        $and: [{ "code": q.code }, { "startDate": { $lte: today } }, { "endDate": { $gte: today } }, 
+                        {
+                            $or: [
+                                { 'eligibleFor': userEligibiltiy },
+                                { 'eligibleFor': 'ALL' }]
+                        }]
+                    });
+                    if(couponData.length!=0){
+                       
+                        res.status(StatusCode.Sucess).send('This Booking Amount is LOW!!\nSo you can not apply this coupon..\nBetter Luck Next Time!!');
+                        res.end();
+                    }else{
+                        var couponD = await couponmodel.find({
+                            $and: [{ "code": q.code }, { "startDate": { $lte: today } }, { "endDate": { $gte: today } },{ "maxOrderValue": { $gte: price } } 
+                            ]
+                        });
+                        if(couponD.length!=0){
+                            res.status(StatusCode.Sucess).send('Oh NO!!\n\nSo you can not apply this coupon..\nBetter Luck Next Time!!');
+                            res.end();
+                        }else{
+                            res.status(StatusCode.Sucess).send([]);
+                            res.end();
+                        }
+                        
+                    }
+
                 }
             }
         }
@@ -93,6 +119,8 @@ class CouponDomain {
                     } else {
                         userEligibiltiy = "NEW";
                     }
+                    console.log(userEligibiltiy);
+                    console.log(q.price)
                 } else {
                     userEligibiltiy = "ALL";
                 }
@@ -107,20 +135,25 @@ class CouponDomain {
                                 { 'eligibleFor': 'ALL' }]
                         }]
                 }).sort({ discount: -1 });
-
+                console.log(couponData)
                 await Promise.all(couponData.map(async (e: any) => {
+                    console.log(e._id);
+                    
                     var bookingData = await bookingmodel.find({ coupon_id: e._id });
                     if (bookingData.length == 0) {
-                        
                         couponResult.push(e);
                     }
                     if (bookingData.length != 0) {
                         count = 0;
+                        console.log(bookingData.length);
                         bookingData.forEach((c: any) => {
+
                             if (c.booked_date.getMonth() == today.getMonth()) {
-                                count = count + 1;
+                                count ++;
                             }
+                            
                         })
+
                         if (count < e.noOfUser) {
                             couponResult.push(e);
                         }
@@ -129,6 +162,7 @@ class CouponDomain {
                 couponResult.sort((a: any, b: any) => {
                     return b.discount - a.discount;
                 });
+                console.log(couponResult);
                 res.status(StatusCode.Sucess).send(couponResult);
                 res.end();
             }

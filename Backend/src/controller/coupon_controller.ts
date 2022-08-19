@@ -28,4 +28,4 @@ router.get('/coupon', CouponController.getAllCoupon);
 router.get('/coupon/:id', CouponController.getCouponId);
 router.get('/code', CouponController.getCoupon);
 router.get('/couponlistmostapplicable', CouponController.getCouponListMostApplicable);
-export { router }
+export { router } 

@@ -2,6 +2,7 @@ import { bookingmodel } from "../model/booking";
 import { StatusCode } from "../statuscode";
 import { hotelmodel } from "../model/hotel";
 import { imagemodel } from "../model/image";
+import { couponmodel } from "../model/coupon"
 import express, { Express, Request, Response } from 'express'
 import { Usermodel } from "../model/users";
 
@@ -313,37 +314,47 @@ class BookingDomain {
         var totalHotelRoomPrize = getHotelRoomPrice + totalMattressPrize;
         var roomPrizwWithDays = totalHotelRoomPrize * diffDays;
         var gstPercentage = 18;
-        var discountPercentage = 5;
-        var roomPriceWithGst = (roomPrizwWithDays * (gstPercentage / 100));
-        var discountPrice = (roomPrizwWithDays + roomPriceWithGst) * (discountPercentage / 100);
-        var totalRoomPrice = (roomPrizwWithDays + roomPriceWithGst - discountPrice);
-        var roomPriceData = {
-            hotelid: hotelId,
-            hotelName: hotelName,
-            address: address,
-            rating: rating,
-            checkInDate: query.cin,
-            checkOutDate: query.cout,
-            roomId: roomid,
-            roomPrice: Math.floor(getHotelRoomPrice),
-            noOfmatress: countOfMattress,
-            matressPrize: Math.floor(totalMattressPrize),
-            noOfDays: diffDays,
-            subTotal: Math.floor(roomPrizwWithDays),
-            gstPercentage: gstPercentage,
-            discountPercentage: discountPercentage,
-            gst: Math.floor(roomPriceWithGst),
-            offer: Math.floor(discountPrice),
-            total: Math.floor(totalRoomPrice)
-
-        }
-        res.send(roomPriceData);
-
+            var discountPercentage;
+            var roomPriceWithGst = (roomPrizwWithDays * (gstPercentage / 100));
+            if (query.coupon_id != 0) {
+                var resCoupon = await couponmodel.find({ "_id": query.coupon_id })
+                discountPercentage = Number(resCoupon[0]?.discount);
+                var discountPrice:number = (roomPrizwWithDays + roomPriceWithGst) * (discountPercentage / 100)
+                if(discountPrice>resCoupon[0].minValue){
+                    discountPrice=resCoupon[0].minValue;
+                }
+            } else {
+                discountPercentage = 0;
+                discountPrice = 0;
+            }
+            var totalRoomPrice = (roomPrizwWithDays + roomPriceWithGst - discountPrice);
+            var roomPriceData = {
+                hotelid: hotelId,
+                hotelName: hotelName,
+                address: address,
+                rating: rating,
+                checkInDate: query.cin,
+                checkOutDate: query.cout,
+                roomId: roomid,
+                roomPrice: Math.floor(getHotelRoomPrice),
+                noOfmatress: countOfMattress,
+                matressPrize: Math.floor(totalMattressPrize),
+                noOfDays: diffDays,
+                subTotal: Math.floor(roomPrizwWithDays),
+                gstPercentage: gstPercentage,
+                discountPercentage: discountPercentage,
+                gst: Math.floor(roomPriceWithGst),
+                offer: Math.floor(discountPrice),
+                total: Math.floor(totalRoomPrice)
+            }
+            console.log(roomPriceData);
+            res.status(StatusCode.Sucess).send(roomPriceData);
+            res.end();
 
 
     }
 
-    async bookingFreeze(req: Request, res: Response, cIn: string, cOut: string, roomId: any, hotelId: any,orderId:any,price:any,coupon_id:any) {
+    async bookingFreeze(req: Request, res: Response, cIn: string, cOut: string, roomId: any, hotelId: any,price:any,orderId:any,coupon_id:any) {
         var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
         try {
             if (roomId.length != 0) {
@@ -375,6 +386,7 @@ class BookingDomain {
                 var bookedData = new bookingmodel(bookIngData);
                 console.log(bookedData);
                 await bookedData.save(); 
+
                 return nextID?._id == undefined ? 1 : Number(nextID?.id) + 1;
             }else{
                 return 0;
@@ -390,12 +402,14 @@ class BookingDomain {
         try{
             console.log('timer');
             await bookingmodel.deleteOne({$and:[{_id:bookingId},{status:"pending"}]});
+
             console.log('deleted')
         }catch(e:any){
             
         }
 
     }
+
     async getAllBookingAdmin(req: Request, res: Response) {
         var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
         var uid: string = reqData.uid;

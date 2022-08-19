@@ -15,7 +15,10 @@ const BookingSchema = new mongoose.Schema({
         discount : {type : Number},
         gst : {type : Number},
         total_price : {type : Number},
-    }
+    },
+    status:{type:String},
+    paymentId : {type :String},
+    orderId : {type : String},
     
 })
 
