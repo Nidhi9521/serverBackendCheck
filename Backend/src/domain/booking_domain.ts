@@ -5,6 +5,7 @@ import { imagemodel } from "../model/image";
 import { couponmodel } from "../model/coupon"
 import express, { Express, Request, Response } from 'express'
 import { Usermodel } from "../model/users";
+import { reviewmodel } from "../model/review";
 
 class BookingDomain {
     async addBooking(req: Request, res: Response) {
@@ -205,9 +206,11 @@ class BookingDomain {
 
     async userBookingHistory(req: Request, res: Response) {
         try {
-            var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
+            var pageSize: any = req.query.pagesize;
+             var page: any = req.query.page;
+            var reqData: any = JSON.parse(JSON.stringify(req.headers['data']))
             var uid: String = reqData.uid;
-            var bookingData = await bookingmodel.find({ "user_id": uid });
+            var bookingData = await bookingmodel.find({ "user_id": uid }).skip((parseInt(pageSize) * parseInt(page))).limit(parseInt(pageSize));
             var hotelIdList: any = [];
             var bookingHistoryData: any = [];
             if (bookingData != null) {
@@ -241,10 +244,16 @@ class BookingDomain {
                     },
 
                 ]);
-
+                var flag=false;
                 bookingData.forEach(e => {
-                    hotelData.forEach(d => {
+                    hotelData.forEach(async d => {
                         if (e.hotel_id == d._id) {
+                            var dataReview=await reviewmodel.find({$and:[{user_id:reqData.uid},{hotel_id:d._id}]});
+                            if(dataReview.length!=0){
+                                flag=true;
+                            }else{
+                                flag=false;
+                            }
                             bookingHistoryData.push({
                                 "hotel_id": d._id,
                                 "hotel_name": d.hotel_name,
@@ -258,7 +267,8 @@ class BookingDomain {
                                  "gst": e.price?.gst,
                                  "booked_date": e.booked_date,
                                 "checking_date": e.checkin_date,
-                                "checkout_date": e.checkout_date
+                                "checkout_date": e.checkout_date,
+                                "review_posted":flag
                             })
                         }
                     })

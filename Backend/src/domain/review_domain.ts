@@ -91,7 +91,7 @@ class ReviewDomain {
             var comfort = 0;
             var location = 0;
             var facilities = 0;
-            var hotelReview = await reviewmodel.find({ hotel_id: req.params.id },{__v:0}).populate({ path: 'user_id', model: Usermodel, select: { 'user_name': 1, 'user_image': 1, '_id': 0 } });
+            var hotelReview = await reviewmodel.find({ hotel_id: req.params.id },{__v:0}).populate({ path: 'user_id', model: Usermodel, select: { 'user_name': 1, 'user_image': 1, '_id': 0 } }).select({'image':-1});
             var resHotel = await hotelmodel.find({ "_id": req.params.id });
             if (hotelReview.length == 0 && resHotel.length == 0) {
                 res.status(StatusCode.Sucess).send([]);
@@ -145,7 +145,7 @@ class ReviewDomain {
 
     async getReviewPending(req: Request, res: Response) {
         try {
-            var resReview = await reviewmodel.find({ "status": 'pending' }).populate({ path: 'user_id', model: Usermodel, select: { 'user_name': 1, 'user_image': 1, '_id': 0 } }).populate({ path: 'hotel_id', model: hotelmodel, select: { 'hotel_name': 1, '_id': 1 } }).sort({ date: 1 }).select({ "status": 0 })
+            var resReview = await reviewmodel.find({ "status": 'pending' }).populate({ path: 'user_id', model: Usermodel, select: { 'user_name': 1, 'user_image': 1, '_id': 0 } }).populate({ path: 'hotel_id', model: hotelmodel, select: { 'hotel_name': 1, '_id': 1 } }).sort({ date: 1 }).select({ "status": 0, })
             res.status(StatusCode.Sucess).send(resReview);
             res.end();
         } catch (error: any) {
