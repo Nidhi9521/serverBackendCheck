@@ -10,6 +10,7 @@ class WebhookDomain {
 
     async verifyPayment(req: Request, res: Response) {
         const SECRET = '123456';
+        console.log("dd");
         console.log(req.body);
         console.log(req.body.payload);
         // res.send(req.body);

@@ -5,14 +5,20 @@ import { verifyToken, checkRequest } from "./authentication/verify_token";
 import * as admin from 'firebase-admin';
 import credential from "./travelproject22-6b9d4-firebase-adminsdk-2wiay-c9c1876710.json";
 import { LoggerMiddleware } from './middlewear/logger';
-
+import cors from "cors";
 const app: Express = express();
 const connection = mongoose.connect('mongodb+srv://akash:akash@cluster0.4gzjhma.mongodb.net/mmt');
 dotenv.config();
 const port = process.env.PORT;
 app.use(express.json());
 app.use(LoggerMiddleware);
+var corsOptions = {
+    origin: '*',
+    optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 
+}
+
+app.use(cors(corsOptions));
 // ROUTER
 import { router as hotelroute } from './controller/hotel_controller';
 import { router as tourroute } from './controller/tour_controller';

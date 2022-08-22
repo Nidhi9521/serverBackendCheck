@@ -12,7 +12,7 @@ class ReviewDomain {
         var nextID: any = await reviewmodel.findOne({}, { _id: 1 }).sort({ _id: -1 });
         var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
 
-        var checkUserPostedReview = await reviewmodel.find({ user_id: reqData.uid })
+        var checkUserPostedReview = await reviewmodel.find({$and:[{ user_id: reqData.uid },{hotel_id:req.params.id}]})
         if (checkUserPostedReview.length != 0) {
             res.status(StatusCode.Sucess).send('review alerady posted')
             res.end();
