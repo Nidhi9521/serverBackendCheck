@@ -6,8 +6,10 @@ import { couponmodel } from "../model/coupon"
 import express, { Express, Request, Response } from 'express'
 import { Usermodel } from "../model/users";
 import { reviewmodel } from "../model/review";
+import { AvailabilityDomain } from "./availability_domain";
 
 class BookingDomain {
+
     async addBooking(req: Request, res: Response) {
         var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
 
@@ -39,7 +41,7 @@ class BookingDomain {
                 e.room.forEach((d: any) => {
                     if (rommIdFromReq.includes(d.room_id)) {
                         roomPrice.push(d.price);
-                        sum = sum +d.price;
+                        sum = sum + d.price;
                     }
                 })
             })
@@ -203,11 +205,10 @@ class BookingDomain {
         }
     }
 
-
     async userBookingHistory(req: Request, res: Response) {
         try {
             var pageSize: any = req.query.pagesize;
-             var page: any = req.query.page;
+            var page: any = req.query.page;
             var reqData: any = JSON.parse(JSON.stringify(req.headers['data']))
             var uid: String = reqData.uid;
             var bookingData = await bookingmodel.find({ "user_id": uid }).skip((parseInt(pageSize) * parseInt(page))).limit(parseInt(pageSize));
@@ -244,16 +245,10 @@ class BookingDomain {
                     },
 
                 ]);
-                var flag=false;
+                var flag = false;
                 bookingData.forEach(e => {
                     hotelData.forEach(async d => {
                         if (e.hotel_id == d._id) {
-                            var dataReview=await reviewmodel.find({$and:[{user_id:reqData.uid},{hotel_id:d._id}]});
-                            if(dataReview.length!=0){
-                                flag=true;
-                            }else{
-                                flag=false;
-                            }
                             bookingHistoryData.push({
                                 "hotel_id": d._id,
                                 "hotel_name": d.hotel_name,
@@ -261,21 +256,30 @@ class BookingDomain {
                                 'images': d.images,
                                 "price": e.price?.total_price,
                                 "no_of_room": e.no_of_room,
-                                "number_of_nights":e.price?.number_of_nights,
+                                "number_of_nights": e.price?.number_of_nights,
                                 "room_price": e.price?.room_price,
                                 "discount": e.price?.discount,
-                                 "gst": e.price?.gst,
-                                 "booked_date": e.booked_date,
+                                "gst": e.price?.gst,
+                                "booked_date": e.booked_date,
                                 "checking_date": e.checkin_date,
-                                "checkout_date": e.checkout_date,
-                                "review_posted":flag
+                                "checkout_date": e.checkout_date
                             })
                         }
                     })
                 })
+                var finalList:any=[];
+                var i: any;
+                for(i = 0 ; i < bookingHistoryData.length ; i ++){
+                    var dataReview=await reviewmodel.find({$and:[{user_id:uid},{hotel_id:bookingHistoryData[i].hotel_id}]});
+                    if(dataReview.length!=0){
+                        flag=true;
+                    }else{
+                        flag=false;
+                    }
+                    bookingHistoryData[i].review_posted = flag
+                }
 
                 res.status(StatusCode.Sucess).send(bookingHistoryData);
-
             } else {
                 res.status(StatusCode.Sucess).send([])
                 res.end()
@@ -290,11 +294,11 @@ class BookingDomain {
         var query: any = req.query;
         var roomid: any = query.roomid.split(",").map(Number);
         var hotelid: any = query.hotelid
-        var adults:any = query.adults
-        console.log("roomid",roomid.length);
-       var noOfPersonforRoom = ((roomid.length) * 2);
-       var countOfMattress:any = ((adults - noOfPersonforRoom) < 0 ) ? 0 : (adults - noOfPersonforRoom);
-       console.log("countOfMattress" ,countOfMattress);
+        var adults: any = query.adults
+        console.log("roomid", roomid.length);
+        var noOfPersonforRoom = ((roomid.length) * 2);
+        var countOfMattress: any = ((adults - noOfPersonforRoom) < 0) ? 0 : (adults - noOfPersonforRoom);
+        console.log("countOfMattress", countOfMattress);
         var getHotelRoom = await hotelmodel.find({ _id: hotelid })
         var hotelId = parseInt(getHotelRoom[0]._id.toString());
         var hotelName = getHotelRoom[0].hotel_name.toString();
@@ -324,64 +328,64 @@ class BookingDomain {
         var totalHotelRoomPrize = getHotelRoomPrice + totalMattressPrize;
         var roomPrizwWithDays = totalHotelRoomPrize * diffDays;
         var gstPercentage = 18;
-            var discountPercentage;
-            var roomPriceWithGst = (roomPrizwWithDays * (gstPercentage / 100));
-            if (query.coupon_id != 0) {
-                var resCoupon = await couponmodel.find({ "_id": query.coupon_id })
-                if(resCoupon){
+        var discountPercentage;
+        var roomPriceWithGst = (roomPrizwWithDays * (gstPercentage / 100));
+        if (query.coupon_id != 0) {
+            var resCoupon = await couponmodel.find({ "_id": query.coupon_id })
+            if (resCoupon) {
                 discountPercentage = Number(resCoupon[0]?.discount);
-                var discountPrice:number = (roomPrizwWithDays + roomPriceWithGst) * (discountPercentage / 100)
-                if(discountPrice>resCoupon[0].minValue){
-                    discountPrice=resCoupon[0].minValue;
-                }
-                }else{
-                    discountPercentage = 0;
-                    discountPrice = 0;
+                var discountPrice: number = (roomPrizwWithDays + roomPriceWithGst) * (discountPercentage / 100)
+                if (discountPrice > resCoupon[0].minValue) {
+                    discountPrice = resCoupon[0].minValue;
                 }
             } else {
                 discountPercentage = 0;
                 discountPrice = 0;
             }
-            var totalRoomPrice = (roomPrizwWithDays + roomPriceWithGst - discountPrice);
-            var roomPriceData = {
-                hotelid: hotelId,
-                hotelName: hotelName,
-                address: address,
-                rating: rating,
-                checkInDate: query.cin,
-                checkOutDate: query.cout,
-                roomId: roomid,
-                roomPrice: Math.floor(getHotelRoomPrice),
-                noOfmatress: countOfMattress,
-                matressPrize: Math.floor(totalMattressPrize),
-                noOfDays: diffDays,
-                subTotal: Math.floor(roomPrizwWithDays),
-                gstPercentage: gstPercentage,
-                discountPercentage: discountPercentage,
-                gst: Math.floor(roomPriceWithGst),
-                offer: Math.floor(discountPrice),
-                total: Math.floor(totalRoomPrice)
-            }
-            console.log(roomPriceData);
-            res.status(StatusCode.Sucess).send(roomPriceData);
-            res.end();
+        } else {
+            discountPercentage = 0;
+            discountPrice = 0;
+        }
+        var totalRoomPrice = (roomPrizwWithDays + roomPriceWithGst - discountPrice);
+        var roomPriceData = {
+            hotelid: hotelId,
+            hotelName: hotelName,
+            address: address,
+            rating: rating,
+            checkInDate: query.cin,
+            checkOutDate: query.cout,
+            roomId: roomid,
+            roomPrice: Math.floor(getHotelRoomPrice),
+            noOfmatress: countOfMattress,
+            matressPrize: Math.floor(totalMattressPrize),
+            noOfDays: diffDays,
+            subTotal: Math.floor(roomPrizwWithDays),
+            gstPercentage: gstPercentage,
+            discountPercentage: discountPercentage,
+            gst: Math.floor(roomPriceWithGst),
+            offer: Math.floor(discountPrice),
+            total: Math.floor(totalRoomPrice)
+        }
+        console.log(roomPriceData);
+        res.status(StatusCode.Sucess).send(roomPriceData);
+        res.end();
 
 
     }
 
-    async bookingFreeze(req: Request, res: Response, cIn: string, cOut: string, roomId: any, hotelId: any,price:any,orderId:any,coupon_id:any) {
-      var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
+    async bookingFreeze(req: Request, res: Response, cIn: string, cOut: string, roomId: any, hotelId: any, price: any, orderId: any, coupon_id: any) {
+        var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
         try {
             if (roomId.length != 0) {
-                var cin=new Date(cIn);
-                var cout=new Date(cOut);
+                var cin = new Date(cIn);
+                var cout = new Date(cOut);
                 var nextID: any = await bookingmodel.findOne({}, { _id: 1 }).sort({ _id: -1 });
                 var diff = Math.abs(cout.getTime() - cin.getTime());
                 var diffDays = Math.ceil(diff / (1000 * 3600 * 24));
                 var bookIngData: object = {
                     _id: nextID?._id == undefined ? 1 : Number(nextID?.id) + 1,
                     // user_id: 'W456HNYRX8a4redJXU9JYxYZm0r1',
-                    user_id:reqData.uid,
+                    user_id: reqData.uid,
                     hotel_id: hotelId,
                     no_of_room: roomId.length,
                     room_id: roomId,
@@ -394,17 +398,17 @@ class BookingDomain {
                         discount: price.discount,
                         total_price: price.total_price
                     },
-                    coupon_id:coupon_id,
+                    coupon_id: coupon_id,
                     status: "pending",
                     paymentId: null,
                     orderId: orderId
                 }
                 var bookedData = new bookingmodel(bookIngData);
                 console.log(bookedData);
-                await bookedData.save(); 
+                await bookedData.save();
 
                 return nextID?._id == undefined ? 1 : Number(nextID?.id) + 1;
-            }else{
+            } else {
                 return 0;
             }
         } catch (err: any) {
@@ -413,15 +417,15 @@ class BookingDomain {
         }
     }
 
-    async bookingFreezFail(bookingId:any){
+    async bookingFreezFail(bookingId: any) {
 
-        try{
+        try {
             console.log('timer');
-            await bookingmodel.deleteOne({$and:[{_id:bookingId},{status:"pending"}]});
+            await bookingmodel.deleteOne({ $and: [{ _id: bookingId }, { status: "pending" }] });
 
             console.log('deleted')
-        }catch(e:any){
-            
+        } catch (e: any) {
+
         }
 
     }
@@ -451,7 +455,7 @@ class BookingDomain {
             var hotelId: Number = hotelid?._id;
             hotelIdtoSearch.push(hotelId);
             var hotelIdFind = (hotelName == "" ? allHotelIdarr : hotelIdtoSearch);
- 
+
             var date2: any = req.query.date2;
             var newCheckOutdata = new Date(date2);
 
@@ -465,7 +469,7 @@ class BookingDomain {
                 allUserIdarr.push(e._id);
             })
             var userIdsearch = ((req.query.username) == "" ? allUserIdarr : userIdarr);
-   
+
 
             if (date2) {
                 var allBookingData = await bookingmodel.aggregate([
@@ -588,6 +592,74 @@ class BookingDomain {
 
     }
 
+    async getBookingCheckApi(req: Request, res: Response) {
+        const hotelId = req.body.hotelId;
+        const cIn: Date = new Date(req.body.cin);
+        const cOut: Date = new Date(req.body.cout);
+        const bookedId: any = [];
+        const resData = await bookingmodel.find({
+            $and: [{ hotel_id: hotelId },
+            {
+                $or: [
+
+                    { $and: [{ "checkin_date": { $lte: cIn } }, { "checkout_date": { $lte: cIn } }] },
+                    { $and: [{ "checkin_date": { $gte: cOut } }, { "checkout_date": { $gte: cOut } }] }
+                ]
+            }
+            ]
+        },
+            {
+                "_id": 1,
+                "hotel_id": 1,
+                "checkin_date": 1,
+                "checkout_date": 1,
+                "room_id": 1
+            });
+
+        if (resData != null) {
+
+            //booked ID from resData
+            resData.forEach(e => {
+                bookedId.push(e._id);
+            });
+
+            const unAvailableBooking = await bookingmodel.find({ $and: [{ hotel_id: hotelId }, { _id: { $nin: bookedId } }] }, {
+                "_id": 1,
+                "hotel_id": 1,
+                "room_id": 1
+            })
+            const unAvailableRoomId: any = [];
+            const roomDetailList: any = [];
+            if (unAvailableBooking != null) {
+
+                //Available roomId 
+                unAvailableBooking.forEach((e: any) => {
+                    e.room_id.forEach((d: any) => {
+                        if (!unAvailableRoomId.includes(d)) {
+                            unAvailableRoomId.push(d);
+                        }
+                    })
+                })
+
+                //get hotel all room Id and subtract it from unAvailable
+                const hRoom = await hotelmodel.find({ _id: hotelId });
+                hRoom.forEach(e => {
+                    e.room.forEach(c => {
+                        if (!unAvailableRoomId.includes(c.room_id)) {
+                            roomDetailList.push(c);
+                        }
+                    });
+                })
+
+                console.log('data')
+                console.log(roomDetailList);
+                res.send(roomDetailList);
+                res.end();
+            } else {
+                console.log('All rooms are available')
+            }
+        }
+    }
 
 }
 

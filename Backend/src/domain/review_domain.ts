@@ -3,7 +3,7 @@ import { hotelmodel } from "../model/hotel";
 import { reviewmodel } from '../model/review';
 import { Usermodel } from '../model/users';
 import { StatusCode } from '../statuscode';
-
+import { getStorage, ref, deleteObject } from "@firebase/storage";
 class ReviewDomain {
 
     //POST Review
@@ -196,7 +196,7 @@ class ReviewDomain {
 
     async getReviewImageApprove(req: Request, res: Response) {
         try {
-
+            const storage = getStorage();
             var reqData: any = JSON.parse(JSON.stringify(req.headers['data']));
             var uid: string = reqData.uid;
             // var uid: string = "dwkkf5q7ufOeZCSqo5qMBR1sA1F2";
@@ -208,11 +208,21 @@ class ReviewDomain {
                     if (resReviewData) {
                         var imageData = resReviewData[0].image;
                         var imageDataDeleted: any = [];
-
+                        var imageDataDelte: any = [];
                         imageData.forEach((e: any) => {
                             if (e.image_id != q.image_id) {
                                 imageDataDeleted.push(e);
+                            }else{
+                                imageDataDelte.push(e.image_url);
                             }
+                        })
+                        imageDataDelte.forEach((e:any)=>{
+                            const desertRef = ref(storage, e);
+                            deleteObject(desertRef).then(() => {
+                              console.log("deleted")
+                            }).catch((error) => {
+                              console.log(error);
+                            });
                         })
                         await reviewmodel.updateOne({ _id: q.review_id }, { $set: { image: imageDataDeleted } });
                         var resReview = await reviewmodel.find({ "status": 'pending' }).populate({ path: 'user_id', model: Usermodel, select: { 'user_name': 1, 'user_image': 1, '_id': 0 } }).populate({ path: 'hotel_id', model: hotelmodel, select: { 'hotel_name': 1, '_id': 1 } }).sort({ date: 1 }).select({ "status": 0 })

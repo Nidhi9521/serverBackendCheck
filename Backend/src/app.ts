@@ -28,10 +28,14 @@ import { router as UserRouter } from './controller/user_controller';
 import { router as reviewroute } from './controller/review_controller';
 import { router as bookingroute } from './controller/booking_controller';
 import { router as bookmarkroute } from './controller/bookmark_controller';
-import {router as paymentroute}  from './controller/payment_controller';
-import { router as couponroute} from './controller/coupon_controller';
+import { router as paymentroute } from './controller/payment_controller';
+import { router as couponroute } from './controller/coupon_controller';
 import { router as webhookroute } from './controller/webhook_controller';
 
+import * as firebase from 'firebase/app';
+import { firebaseConfig } from "./firebase.config";
+
+firebase.initializeApp(firebaseConfig);
 // FIREBASE INTITIALIZE
 admin.initializeApp(
     {
@@ -41,7 +45,7 @@ admin.initializeApp(
 
 app.use('/webhook', webhookroute);
 // TOKEN VERIFICATION CALL
-app.use(verifyToken, checkRequest);
+//app.use(verifyToken, checkRequest);
 
 // ROOT LEVEL
 app.get('/', (req: Request, res: Response) => {
@@ -58,7 +62,7 @@ app.use('/user', UserRouter)
 app.use('/review', reviewroute);
 app.use('/booking', bookingroute);
 app.use('/bookmark', bookmarkroute);
-app.use('/payment',paymentroute);
+app.use('/payment', paymentroute);
 app.use('/coupon', couponroute);
 
 

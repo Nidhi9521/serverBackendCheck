@@ -26,8 +26,13 @@ class BookingController {
         const bookIngDomain = new BookingDomain();
         await bookIngDomain.getAllBookingAdmin(req, res);
     }
+    static async checkBookingApi(req:Request , res : Response){
+        const bookIngDomain = new BookingDomain();
+        await bookIngDomain.getBookingCheckApi(req, res);
+    }
 }
 
+router.get('/check/booking', BookingController.checkBookingApi);
 router.post('/hotelbooking', BookingController.addBooking);
 router.get('/check', BookingController.roomBookAvailableCheck);
 router.get('/user/bookings', BookingController.userBookingHistory);

@@ -16,6 +16,9 @@ class BookmarkController {
         const bookmarkdomain = new BookmarkDomain();
         await bookmarkdomain.userBookmark(req, res);
     }
+
+    
+
 }
 
 
